@@ -10,7 +10,6 @@ from dotenv import load_dotenv
 # Load environment variables from the .env file located next to agent.py
 _env_path = Path(__file__).parent / ".env"
 load_dotenv(dotenv_path=_env_path, override=True)
-print("Loaded GEMINI_API_KEY:", os.getenv("GEMINI_API_KEY"))
 
 # We only import antigravity if the key exists to prevent crashing if it's not installed/configured properly
 try:
