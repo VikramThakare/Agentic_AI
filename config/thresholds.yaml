@@ -1,0 +1,41 @@
+# config/thresholds.yaml
+# Note: These thresholds are for educational/prototype purposes only, NOT for clinical use.
+
+heart_rate_bpm:
+  low: 50
+  normal_min: 60
+  normal_max: 100
+  moderate: 110
+  high: 120
+  critical: 130
+
+spo2_percent:
+  critical: 85
+  high: 90
+  moderate: 94
+  normal_min: 95
+  normal_max: 100
+
+respiratory_rate_bpm:
+  low: 10
+  normal_min: 12
+  normal_max: 20
+  moderate: 24
+  high: 28
+  critical: 32
+
+systolic_bp_mmhg:
+  low: 90
+  normal_min: 100
+  normal_max: 120
+  moderate: 140
+  high: 160
+  critical: 180
+
+diastolic_bp_mmhg:
+  low: 60
+  normal_min: 70
+  normal_max: 80
+  moderate: 90
+  high: 100
+  critical: 110

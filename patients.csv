@@ -1,0 +1,7 @@
+patient_id,age,history,medications,recent_labs,baseline
+P-001,45,"[""No significant past medical history""]","[""None""]","{""WBC"": 7.5, ""Hgb"": 14.2}","{""HR"": 70, ""SpO2"": 98, ""RR"": 14, ""SysBP"": 120, ""DiaBP"": 80}"
+P-002,62,"[""Type 2 Diabetes""]","[""Metformin""]","{""HbA1c"": 6.8}","{""HR"": 75, ""SpO2"": 97, ""RR"": 16, ""SysBP"": 130, ""DiaBP"": 85}"
+P-003,71,"[""COPD"", ""Hypertension""]","[""Albuterol"", ""Lisinopril""]","{""pH"": 7.36, ""pCO2"": 45}","{""HR"": 85, ""SpO2"": 94, ""RR"": 18, ""SysBP"": 135, ""DiaBP"": 85}"
+P-004,58,"[""Coronary Artery Disease"", ""Hyperlipidemia""]","[""Atorvastatin"", ""Aspirin""]","{""Troponin"": 0.01}","{""HR"": 65, ""SpO2"": 99, ""RR"": 14, ""SysBP"": 115, ""DiaBP"": 75}"
+P-005,35,"[""Asthma""]","[""Fluticasone""]",{},"{""HR"": 80, ""SpO2"": 97, ""RR"": 16, ""SysBP"": 120, ""DiaBP"": 80}"
+P-006,82,"[""Dementia"", ""Osteoarthritis""]","[""Donepezil"", ""Acetaminophen""]",{},"{""HR"": 72, ""SpO2"": 96, ""RR"": 15, ""SysBP"": 125, ""DiaBP"": 82}"
