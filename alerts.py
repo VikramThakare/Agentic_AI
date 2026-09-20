@@ -73,15 +73,12 @@ class AlertManager:
         concerning_signals = latest_res.get('concerning_signals', [])
         
         # Invoke ClinicalEscalationAgent
-        import asyncio
         from agent import ClinicalEscalationAgent
         
         agent = ClinicalEscalationAgent()
         
-        # This blocks until the agent finishes (or falls back)
-        structured_response = asyncio.run(
-            agent.generate_recommendation(patient_id, priority_score, concerning_signals)
-        )
+        # Agent is now synchronous (Grok via OpenAI API)
+        structured_response = agent.generate_recommendation(patient_id, priority_score, concerning_signals)
         
         # Format the structured response for the dashboard
         rec_text = (

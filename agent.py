@@ -1,22 +1,17 @@
 import os
 import json
 import sqlite3
+import re
 import pandas as pd
 from pathlib import Path
 from pydantic import BaseModel, Field
 from typing import List, Optional
 from dotenv import load_dotenv
+from openai import OpenAI
 
 # Load environment variables from the .env file located next to agent.py
 _env_path = Path(__file__).parent / ".env"
 load_dotenv(dotenv_path=_env_path, override=True)
-
-# We only import antigravity if the key exists to prevent crashing if it's not installed/configured properly
-try:
-    from google.antigravity import Agent, LocalAgentConfig
-    AG_AVAILABLE = True
-except ImportError:
-    AG_AVAILABLE = False
 
 DB_NAME = "copilot.db"
 
@@ -119,13 +114,18 @@ def get_clinical_protocol(signals: str) -> str:
 
 class ClinicalEscalationAgent:
     def __init__(self):
-        self.api_key = os.getenv("GEMINI_API_KEY")
-        self.is_available = bool(self.api_key) and AG_AVAILABLE
+        self.api_key = os.getenv("GROQ_API_KEY")
+        self.is_available = bool(self.api_key)
         
         if self.is_available:
-            system_instruction = (
+            self.client = OpenAI(
+                api_key=self.api_key,
+                base_url="https://api.groq.com/openai/v1"
+            )
+            
+            self.system_instruction = (
                 "You are a clinical decision-support copilot. "
-                "Your role is to help a clinician interpret a detected deterioration event using ONLY the evidence supplied through the available tools.\n\n"
+                "Your role is to help a clinician interpret a detected deterioration event using ONLY the evidence provided below.\n\n"
                 "Rules:\n"
                 "- Do not invent patient information.\n"
                 "- Do not invent vital readings.\n"
@@ -140,19 +140,25 @@ class ClinicalEscalationAgent:
                 "- Recommend clinician review/escalation according to the retrieved protocol when appropriate.\n"
                 "- If evidence is insufficient, explicitly state that more information or clinician assessment is required.\n"
                 "- Keep recommendations concise and understandable to a clinician.\n\n"
-                "You MUST use all three tools to investigate the patient before generating your final response."
-            )
-            
-            self.config = LocalAgentConfig(
-                api_key=self.api_key,
-                system_instructions=system_instruction,
-                tools=[get_patient_context, get_vital_history, get_clinical_protocol],
-                response_schema=RecommendationOutput
+                "You MUST respond with a valid JSON object matching this exact schema:\n"
+                "{\n"
+                '  "patient_id": "string",\n'
+                '  "alert_level": "Critical or High",\n'
+                '  "summary": "1-2 sentence summary",\n'
+                '  "detected_signals": ["signal1", "signal2"],\n'
+                '  "evidence": "specific vital readings that support the recommendation",\n'
+                '  "patient_context": "relevant medical history, age, medications",\n'
+                '  "protocol_source": "protocol document ID or name",\n'
+                '  "recommendation": "concise, evidence-grounded clinical recommendation",\n'
+                '  "limitations": "data limitations and need for clinician assessment"\n'
+                "}\n\n"
+                "Return ONLY the JSON object. No markdown, no explanation, no code fences."
             )
 
-    async def generate_recommendation(self, patient_id: str, alert_score: float, concerning_signals: List[str]) -> dict:
+    def generate_recommendation(self, patient_id: str, alert_score: float, concerning_signals: List[str]) -> dict:
         """
         Invokes the agent to generate a recommendation. 
+        Calls all 3 tools to gather evidence, then sends to Groq for reasoning.
         Returns a dict matching RecommendationOutput schema, or a fallback dict if LLM fails.
         """
         fallback_response = {
@@ -171,26 +177,76 @@ class ClinicalEscalationAgent:
             return fallback_response
 
         try:
-            prompt = (
+            # --- Tool Execution Phase: Gather all evidence ---
+            print(f"[Agent] Gathering evidence for {patient_id}...")
+            
+            # Tool 1: Patient Context
+            patient_ctx = get_patient_context(patient_id)
+            print(f"[Agent] Tool 1 (Patient Context): Retrieved")
+            
+            # Tool 2: Vital History
+            vital_hist = get_vital_history(patient_id)
+            print(f"[Agent] Tool 2 (Vital History): Retrieved")
+            
+            # Tool 3: Clinical Protocol (via TF-IDF RAG)
+            signals_str = " ".join(concerning_signals)
+            protocol_text = get_clinical_protocol(signals_str)
+            print(f"[Agent] Tool 3 (Clinical Protocol): Retrieved")
+            
+            # --- LLM Reasoning Phase: Send all evidence to Groq ---
+            user_prompt = (
                 f"A potential deterioration event has been triggered for patient {patient_id}.\n"
                 f"The alerting system assigned a priority score of {alert_score}.\n"
-                f"The concerning signals detected are: {', '.join(concerning_signals)}.\n"
-                f"Please investigate using your tools and provide an evidence-grounded recommendation."
+                f"The concerning signals detected are: {', '.join(concerning_signals)}.\n\n"
+                f"=== TOOL 1: PATIENT CONTEXT ===\n{patient_ctx}\n\n"
+                f"=== TOOL 2: RECENT VITAL HISTORY ===\n{vital_hist}\n\n"
+                f"=== TOOL 3: RETRIEVED CLINICAL PROTOCOL (via TF-IDF RAG) ===\n{protocol_text}\n\n"
+                f"Based on the above evidence from all three tools, provide your structured clinical decision-support recommendation."
             )
             
-            async with Agent(self.config) as agent:
-                response = await agent.chat(prompt)
-                
-                # Use the correct SDK method for structured Pydantic output
-                result = await response.structured_output()
-                
-                if result is None:
-                    print("Agent returned None structured output.")
-                    return fallback_response
-                
-                # result is already a dict matching RecommendationOutput schema
-                return result
+            print(f"[Agent] Sending evidence to Groq for reasoning...")
+            
+            response = self.client.chat.completions.create(
+                model="qwen/qwen3.8-27b",
+                messages=[
+                    {"role": "system", "content": self.system_instruction},
+                    {"role": "user", "content": user_prompt}
+                ],
+                temperature=0.3,
+                max_tokens=1024,
+                response_format={"type": "json_object"}
+            )
+            
+            raw_text = response.choices[0].message.content.strip()
+            print(f"[Agent] Groq response received ({len(raw_text)} chars)")
+            
+            # --- Parse structured JSON response ---
+            json_text = raw_text
+            
+            # Strip markdown code fences if present
+            if "```" in json_text:
+                match = re.search(r"```(?:json)?\s*([\s\S]*?)```", json_text)
+                if match:
+                    json_text = match.group(1).strip()
+            
+            # Find JSON object boundaries as fallback
+            if not json_text.startswith("{"):
+                start = json_text.find("{")
+                end = json_text.rfind("}") + 1
+                if start != -1 and end > start:
+                    json_text = json_text[start:end]
+            
+            result = json.loads(json_text)
+            
+            # Validate with Pydantic
+            validated = RecommendationOutput(**result)
+            print(f"[Agent] Response validated successfully.")
+            return validated.model_dump()
                     
+        except json.JSONDecodeError as je:
+            print(f"[Agent] Grok returned malformed JSON: {je}")
+            print(f"[Agent] Raw text: {raw_text[:300]}")
+            return fallback_response
         except Exception as e:
-            print(f"Agent Execution Error: {str(e)}")
+            print(f"[Agent] Execution Error: {str(e)}")
             return fallback_response
