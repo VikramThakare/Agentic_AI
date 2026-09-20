@@ -68,18 +68,29 @@ class AlertManager:
         priority_score = max_points + 5 # 5 points for persistence
         risk_category = "critical" if priority_score >= 10 else "high"
         
-        # Determine signals for protocol retrieval
+        # Determine signals
         latest_res = self.trend_engine.evaluate(history_df.iloc[-1:])
         concerning_signals = latest_res.get('concerning_signals', [])
-        signals_text = " ".join(concerning_signals)
         
-        from retrieval import ProtocolRetriever
-        retriever = ProtocolRetriever()
-        protocol_match = retriever.find_protocol(signals_text)
+        # Invoke ClinicalEscalationAgent
+        import asyncio
+        from agent import ClinicalEscalationAgent
         
-        rec_text = f"Review patient promptly and verify current measurements. Multi-signal deterioration detected ({', '.join(concerning_signals)}) and persisted for 3 readings. Score: {priority_score}."
-        if protocol_match:
-            rec_text += f"\n\n**Grounding Protocol [{protocol_match['document_id']}]:**\n{protocol_match['text_excerpt'][:200]}..."
+        agent = ClinicalEscalationAgent()
+        
+        # This blocks until the agent finishes (or falls back)
+        structured_response = asyncio.run(
+            agent.generate_recommendation(patient_id, priority_score, concerning_signals)
+        )
+        
+        # Format the structured response for the dashboard
+        rec_text = (
+            f"**Recommendation:** {structured_response.get('recommendation', '')}\n\n"
+            f"**Evidence:** {structured_response.get('evidence', '')}\n\n"
+            f"**Context:** {structured_response.get('patient_context', '')}\n\n"
+            f"**Protocol Consulted:** {structured_response.get('protocol_source', '')}\n\n"
+            f"**Limitations:** {structured_response.get('limitations', '')}"
+        )
             
         # Save alert
         cursor.execute("""
@@ -91,24 +102,41 @@ class AlertManager:
             current_time.isoformat(), 
             "active", 
             priority_score, 
-            json.dumps({"reason": "persistent_multi_signal", "window": 3, "signals": concerning_signals}), 
+            json.dumps({"reason": "persistent_multi_signal", "window": 3, "signals": concerning_signals, "agent_structured": structured_response}), 
             rec_text,
             cooldown_until_dt.isoformat()
         ))
         
-        # Save evidence record if a protocol matched
-        if protocol_match:
+        # We optionally log the protocol retrieval evidence if it was found
+        protocol_doc = structured_response.get('protocol_source', '')
+        if protocol_doc and protocol_doc != "System Fallback":
             cursor.execute("""
                 INSERT INTO evidence_records (alert_id, patient_id, document_id, section_title, text_excerpt, retrieval_timestamp)
                 VALUES (?, ?, ?, ?, ?, ?)
             """, (
                 alert_id,
                 patient_id,
-                protocol_match['document_id'],
-                protocol_match['section_title'],
-                protocol_match['text_excerpt'],
+                protocol_doc,
+                "Agentic Retrieval",
+                json.dumps(structured_response),
                 current_time.isoformat()
             ))
+            
+        # Log to Audit Trail
+        from audit import AuditLogger
+        audit = AuditLogger(self.conn.execute("PRAGMA database_list").fetchone()[2] if hasattr(self.conn, 'execute') else "copilot.db")
+        audit.conn = self.conn # Use existing transaction connection
+        audit.log_event(
+            patient_id, 
+            alert_id, 
+            "ALERT_GENERATED", 
+            {
+                "priority_score": priority_score,
+                "signals": concerning_signals,
+                "protocol_retrieved": protocol_doc,
+                "recommendation_summary": structured_response.get('summary', '')
+            }
+        )
         
         self.conn.commit()
         return {
