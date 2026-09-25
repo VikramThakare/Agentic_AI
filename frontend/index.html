@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clinical Escalation Copilot</title>
+    <!-- Use Inter font for modern typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="dashboard">
+        <header class="glass-panel">
+            <h1>Agentic Clinical Copilot</h1>
+            <div class="status-indicator">
+                <span class="dot pulse"></span> Live Graph System
+            </div>
+        </header>
+
+        <main style="display: flex; flex-direction: column; gap: 2rem;">
+            <section class="simulation-controls glass-panel" style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h2>Continuous Live Stream Simulation</h2>
+                    <p class="subtitle" id="sim-status">Simulating live continuous data (1 tick = 1 sec). Alerts disappear after 30s.</p>
+                </div>
+                <button id="start-simulation" class="btn primary-btn" style="width: auto; padding: 1rem 2rem;">Start Simulation</button>
+            </section>
+
+            <section class="patients-grid" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 1.5rem;">
+                <!-- P-001 to P-005 -->
+                <div class="patient-card glass-panel" id="card-P-001">
+                    <h3>P-001</h3>
+                    <div class="vital-row"><span class="label">HR:</span> <span class="val" id="P-001-hr">--</span></div>
+                    <div class="vital-row"><span class="label">SpO2:</span> <span class="val" id="P-001-spo2">--</span></div>
+                    <div class="vital-row"><span class="label">RR:</span> <span class="val" id="P-001-rr">--</span></div>
+                    <div class="vital-row"><span class="label">BP:</span> <span class="val" id="P-001-bp">--/--</span></div>
+                    <div class="status-badge stable" id="P-001-status">Monitoring</div>
+                </div>
+                <div class="patient-card glass-panel" id="card-P-002">
+                    <h3>P-002</h3>
+                    <div class="vital-row"><span class="label">HR:</span> <span class="val" id="P-002-hr">--</span></div>
+                    <div class="vital-row"><span class="label">SpO2:</span> <span class="val" id="P-002-spo2">--</span></div>
+                    <div class="vital-row"><span class="label">RR:</span> <span class="val" id="P-002-rr">--</span></div>
+                    <div class="vital-row"><span class="label">BP:</span> <span class="val" id="P-002-bp">--/--</span></div>
+                    <div class="status-badge stable" id="P-002-status">Monitoring</div>
+                </div>
+                <div class="patient-card glass-panel" id="card-P-003">
+                    <h3>P-003</h3>
+                    <div class="vital-row"><span class="label">HR:</span> <span class="val" id="P-003-hr">--</span></div>
+                    <div class="vital-row"><span class="label">SpO2:</span> <span class="val" id="P-003-spo2">--</span></div>
+                    <div class="vital-row"><span class="label">RR:</span> <span class="val" id="P-003-rr">--</span></div>
+                    <div class="vital-row"><span class="label">BP:</span> <span class="val" id="P-003-bp">--/--</span></div>
+                    <div class="status-badge stable" id="P-003-status">Monitoring</div>
+                </div>
+                <div class="patient-card glass-panel" id="card-P-004">
+                    <h3>P-004</h3>
+                    <div class="vital-row"><span class="label">HR:</span> <span class="val" id="P-004-hr">--</span></div>
+                    <div class="vital-row"><span class="label">SpO2:</span> <span class="val" id="P-004-spo2">--</span></div>
+                    <div class="vital-row"><span class="label">RR:</span> <span class="val" id="P-004-rr">--</span></div>
+                    <div class="vital-row"><span class="label">BP:</span> <span class="val" id="P-004-bp">--/--</span></div>
+                    <div class="status-badge stable" id="P-004-status">Monitoring</div>
+                </div>
+                <div class="patient-card glass-panel" id="card-P-005">
+                    <h3>P-005</h3>
+                    <div class="vital-row"><span class="label">HR:</span> <span class="val" id="P-005-hr">--</span></div>
+                    <div class="vital-row"><span class="label">SpO2:</span> <span class="val" id="P-005-spo2">--</span></div>
+                    <div class="vital-row"><span class="label">RR:</span> <span class="val" id="P-005-rr">--</span></div>
+                    <div class="vital-row"><span class="label">BP:</span> <span class="val" id="P-005-bp">--/--</span></div>
+                    <div class="status-badge stable" id="P-005-status">Monitoring</div>
+                </div>
+            </section>
+
+            <section class="alerts-panel glass-panel">
+                <h2>Agentic Escalation Output (RAG + Groq LLM)</h2>
+                <div id="alerts-container">
+                    <div class="empty-state">System standing by. Start simulation to monitor patients.</div>
+                </div>
+            </section>
+        </main>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
