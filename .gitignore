@@ -1,0 +1,26 @@
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Database
+copilot.db
+*.sqlite3
+
+# Data (Generated)
+patients.csv
+vitals_stream.csv
+
+# IDEs and OS
+.vscode/
+.idea/
+.DS_Store
