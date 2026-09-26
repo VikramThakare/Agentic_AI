@@ -1,4 +1,4 @@
-patient_id,age,history,medications,recent_labs,baseline
+patient_id,age,history,medications,recent_labs,baseline,name,dob,gender,phone,email,emergency,room
 P-001,45,"[""No significant past medical history""]","[""None""]","{""WBC"": 7.5, ""Hgb"": 14.2}","{""HR"": 70, ""SpO2"": 98, ""RR"": 14, ""SysBP"": 120, ""DiaBP"": 80}"
 P-002,62,"[""Type 2 Diabetes""]","[""Metformin""]","{""HbA1c"": 6.8}","{""HR"": 75, ""SpO2"": 97, ""RR"": 16, ""SysBP"": 130, ""DiaBP"": 85}"
 P-003,71,"[""COPD"", ""Hypertension""]","[""Albuterol"", ""Lisinopril""]","{""pH"": 7.36, ""pCO2"": 45}","{""HR"": 85, ""SpO2"": 94, ""RR"": 18, ""SysBP"": 135, ""DiaBP"": 85}"

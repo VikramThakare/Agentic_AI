@@ -14,14 +14,20 @@ def get_embeddings():
         _embeddings = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL_ID)
     return _embeddings
 
+_vector_store = None
+
 def get_vector_store() -> Chroma:
     """
     Returns the Chroma vector store instance. 
     It will load the existing database from CHROMA_DB_DIR if it exists,
     or create a new empty one in that directory.
+    Uses a singleton to avoid thread locks.
     """
-    return Chroma(
-        collection_name="clinical_protocols",
-        embedding_function=get_embeddings(),
-        persist_directory=CHROMA_DB_DIR
-    )
+    global _vector_store
+    if _vector_store is None:
+        _vector_store = Chroma(
+            collection_name="clinical_protocols",
+            embedding_function=get_embeddings(),
+            persist_directory=CHROMA_DB_DIR
+        )
+    return _vector_store
