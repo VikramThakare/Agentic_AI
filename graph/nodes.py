@@ -127,7 +127,7 @@ def reason_generate_node(state: PatientState):
     parser = PydanticOutputParser(pydantic_object=ClinicalRecommendation)
     
     prompt = ChatPromptTemplate.from_messages([
-        ("system", "You are an expert clinical AI copilot. Given the patient's vitals, medical history, and retrieved protocol evidence, output a highly accurate clinical recommendation. Do not hallucinate outside the provided protocol evidence. Always consider the patient's medical history when recommending actions.\n\n{format_instructions}"),
+        ("system", "You are an expert clinical AI copilot. Given the patient's vitals, medical history, and retrieved protocol evidence, output a highly accurate clinical recommendation. Do not hallucinate outside the provided protocol evidence. Always consider the patient's medical history when recommending actions. YOU MUST ALWAYS PROVIDE AT LEAST ONE SPECIFIC ACTIONABLE STEP in the `recommended_actions` array.\n\n{format_instructions}"),
         ("human", "Patient History: {history}\n\nPatient Vitals (Last 30 secs): {vitals}\n\nAlert Details: {alerts}\n\nRetrieved Protocol Evidence:\n{evidence}")
     ])
     

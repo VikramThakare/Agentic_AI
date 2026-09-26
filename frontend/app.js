@@ -560,10 +560,13 @@ function populatePatientDetail(patient) {
         let escalationHtml = `<strong>Risk Level:</strong> <span class="status-badge ${patient.escalation.severity_tier}">${patient.escalation.severity_tier}</span><br><br>`;
         escalationHtml += `<strong>Risk Score:</strong> ${patient.escalation.risk_score} / 10<br><br>`;
         escalationHtml += `<strong>Summary:</strong> ${patient.escalation.plain_language_explanation || 'No summary provided'}<br><br>`;
-        if (patient.escalation.recommended_actions) {
+        
+        if (patient.escalation.recommended_actions && patient.escalation.recommended_actions.length > 0) {
             escalationHtml += `<strong>Interventions:</strong><ul>`;
             patient.escalation.recommended_actions.forEach(item => {
-                escalationHtml += `<li>${item}</li>`;
+                if(item.trim() !== "") {
+                    escalationHtml += `<li>${item}</li>`;
+                }
             });
             escalationHtml += `</ul>`;
         }

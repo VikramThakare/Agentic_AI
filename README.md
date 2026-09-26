@@ -4,9 +4,9 @@
 
 ## Overview
 
-This project is an advanced, agentic clinical decision-support system designed to monitor a simulated real-time stream of patient vital signs. It maintains an evolving per-patient state using **LangGraph** to intelligently detect multi-parameter deterioration trends and escalate cases to a clinician with a clear, evidence-grounded explanation generated via **RAG (Retrieval-Augmented Generation)** and the **Groq API**.
+This project is an advanced, agentic clinical decision-support system designed to monitor a simulated real-time stream of patient vital signs. It maintains an evolving per-patient state using **LangGraph** to intelligently detect multi-parameter deterioration trends and escalate cases to a clinician with a clear, evidence-grounded explanation generated via **RAG (Retrieval-Augmented Generation)** and the **OpenRouter API**.
 
-This avoids "alarm fatigue" caused by naive single-threshold alerts, ensuring only genuine, persistent deteriorations are flagged. When a critical threshold is breached, the LangGraph workflow actively retrieves relevant medical protocols and synthesizes a recommendation before explicitly **pausing** execution to await a human clinician's decision (Human-in-the-Loop).
+This avoids "alarm fatigue" by ensuring only genuine, persistent deteriorations are flagged. When a critical threshold is breached, the LangGraph workflow actively retrieves relevant medical protocols and synthesizes a recommendation before explicitly **pausing** execution to await a human clinician's decision (Human-in-the-Loop). The system also features a dynamic patient roster where users can **Add, Edit (History/Meds), and Remove patients** on the fly, seamlessly rebuilding the synthetic stream dataset without dropping the live feed.
 
 ## Architecture & Agent Loop
 
@@ -16,7 +16,7 @@ The system has been completely upgraded to a modern, real-time architecture:
 2. **FastAPI Backend (`api/server.py`)**: An asynchronous REST API that receives the streaming vitals and pushes them into the LangGraph state machine.
 3. **LangGraph Workflow (`graph/workflow.py` & `nodes.py`)**: The core orchestration engine. The state flows through:
    - `ingest_reading` -> `update_profile` -> `detect_trend`
-   - *If deteriorating*: -> `retrieve_evidence` (RAG) -> `reason_generate` (Groq LLM)
+   - *If deteriorating*: -> `retrieve_evidence` (RAG) -> `reason_generate` (OpenRouter LLM)
    - *Human-in-the-Loop*: The graph pauses before `human_in_loop` until the clinician approves or dismisses the alert via the UI.
    - *Resolution*: -> `audit_log_write`
 
@@ -30,10 +30,10 @@ pip install -r requirements.txt
 ```
 
 ### 1. Set up Environment
-Copy `.env.example` to `.env` and add your Groq API key:
+Copy `.env.example` to `.env` and add your OpenRouter API key:
 ```bash
-# Get your Groq API key from https://console.groq.com/keys
-GROQ_API_KEY=your_api_key_here
+# Get your OpenRouter API key from https://openrouter.ai/keys
+OPENROUTER_API_KEY=your_api_key_here
 ```
 
 ### 2. Run the FastAPI Backend

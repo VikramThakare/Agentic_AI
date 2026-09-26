@@ -70,7 +70,8 @@
                             <button id="edit-patient-btn" class="btn outline-btn" onclick="editPatientPrompt()">
                                 <i data-feather="edit-2"></i> Edit Patient
                             </button>
-                            <button id="remove-patient-btn" class="btn outline-btn" style="border-color: #ef4444; color: #ef4444;" onclick="removePatientPrompt()">
+                            <button id="remove-patient-btn" class="btn outline-btn"
+                                style="border-color: #ef4444; color: #ef4444;" onclick="removePatientPrompt()">
                                 <i data-feather="user-minus"></i> Remove Patient
                             </button>
                             <button id="toggle-sim-btn" class="btn primary-btn" onclick="toggleSimulation()">
@@ -174,9 +175,6 @@
                                 </div>
                             </div>
                         </div>
-                        <button class="btn outline-btn">
-                            <i data-feather="edit-2"></i> Edit profile
-                        </button>
                     </div>
 
                     <div class="vitals-cards">
@@ -269,7 +267,7 @@
                         </div>
                         <div class="panel ai-escalation" id="ai-escalation-panel" style="display: none;">
                             <div class="panel-header">
-                                <h2>AI Escalation (RAG + Groq)</h2>
+                                <h2>AI Escalation</h2>
                             </div>
                             <div class="escalation-content" style="padding: 24px;">
                                 <div id="rag-output" class="text-secondary">No current escalations for this patient.
@@ -277,8 +275,8 @@
                                 <div id="human-loop-actions"
                                     style="display: none; margin-top: 20px; gap: 10px; display: flex;">
                                     <button class="btn primary-btn" style="background-color: #10b981;"
-                                        onclick="submitDecision('accept')">
-                                        <i data-feather="check"></i> Accept Plan
+                                        onclick="submitDecision('refer')">
+                                        <i data-feather="external-link"></i> Refer
                                     </button>
                                     <button class="btn outline-btn" onclick="submitDecision('dismiss')">
                                         <i data-feather="x"></i> Dismiss
