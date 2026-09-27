@@ -1,88 +1,90 @@
-# PROJECT_CONTEXT.md — Handoff Document
+# PROJECT_CONTEXT.md — Handoff Document & Implementation Details
 
 **Project**: Agentic Clinical Deterioration & Escalation Copilot (LangGraph Architecture)
-**Last Updated**: 2026-09-25
+**Last Updated**: 2026-09-27
 **Disclaimer**: Educational prototype only. Not a medical device. Not for clinical use.
 
 ---
 
-## 1. Project Overview & Objective
+## 1. Project Objective & Vision
 
-This is a prototype clinical decision-support system that monitors a simulated real-time stream of patient vital signs. It maintains per-patient state, detects multi-parameter deterioration trends, and escalates genuine persistent cases to a clinician with an **AI-generated, evidence-grounded recommendation** powered by the OpenRouter API (using `openrouter/free`).
+This system is an agent-driven clinical decision-support prototype. It monitors continuous streams of patient vital signs to track evolving physiological states. The primary objective is to detect persistent, multi-parameter deterioration trends (such as early signs of sepsis, respiratory failure, or cardiac events) and intelligently escalate them.
 
-The core engine has been upgraded to use **LangGraph** as a state machine. The workflow triggers a RAG pipeline to pull relevant clinical protocols, generates a structured LLM recommendation, and strictly enforces a **Human-in-the-Loop (HITL)** pause. The graph halts execution until a clinician explicitly approves or dismisses the generated protocol via the UI.
-
----
-
-## 2. Current Project Status
-
-**All core agentic and architectural milestones are COMPLETE:**
-- ✅ Vanilla HTML/CSS/JS Frontend Dashboard with infinite synthetic vitals stream.
-- ✅ FastAPI Backend to handle real-time streaming endpoints.
-- ✅ LangGraph `StateGraph` definition and execution (`workflow.py`).
-- ✅ Rolling buffer management for vital readings inside the graph state.
-- ✅ TF-IDF RAG retrieval system integrated directly into LangGraph nodes.
-- ✅ OpenRouter-powered LLM reasoning node with structured JSON output, strictly enforcing intervention items.
-- ✅ Beautiful UI parsing of the LLM JSON response.
-- ✅ **Human-in-the-Loop** pause: LangGraph suspends execution and ignores new vitals for that patient until the clinician acts.
-- ✅ Clinician Action API (`/alerts/{patient_id}/decision`) to resume the graph.
-- ✅ Dynamic Patient CRUD APIs: Add (`POST`), Edit History/Meds (`PUT`), and Remove (`DELETE`) endpoints that interactively wipe and rebuild the simulation feed seamlessly.
+To ensure clinical safety and reduce alert fatigue:
+1. **Persistence Checks**: A single abnormal reading is ignored; trends must persist across multiple rolling window ticks.
+2. **Evidence-Grounded AI**: Escalations are powered by RAG (retrieving exact clinical protocols) and structured LLM generation (via OpenRouter) to provide clinicians with clear, justifiable recommendations.
+3. **Strict Human-in-the-Loop (HITL)**: Once an escalation is generated, the agentic loop is forcibly paused. No further automated actions are taken for that patient until a human clinician explicitly reviews and resolves the alert.
 
 ---
 
-## 3. Folder/File Structure
+## 2. Technical Stack & Architecture
 
-```
+- **Backend Framework**: FastAPI (Python)
+- **Agent Orchestration**: LangGraph (`StateGraph`, `MemorySaver`)
+- **LLM Provider**: OpenRouter API (`openrouter/free` model) via LangChain
+- **Frontend**: Vanilla HTML5, CSS3, JavaScript (No build process required)
+- **State Schema**: Strictly typed via `TypedDict` and `Pydantic`
+
+### LangGraph Workflow Details
+The state machine for each patient is defined in `graph/workflow.py` and maintains a dedicated `thread_id` corresponding to the `patient_id`. 
+
+**The Node Sequence:**
+1. `ingest_reading`: Maintains a rolling buffer of the last 30 readings.
+2. `update_profile`: Injects static patient history and demographics from the local CSV.
+3. `detect_trend`: A rule-based engine evaluating the buffer against thresholds (e.g., SpO2 < 92 & RR > 22 for respiratory distress).
+4. `retrieve_evidence` (Conditional): If a trend is detected, this node performs a TF-IDF search against local clinical protocols.
+5. `reason_generate` (Conditional): Calls the OpenRouter LLM, injecting the patient history, recent vitals, and retrieved protocol to generate a structured `ClinicalRecommendation`.
+6. `human_in_loop`: The graph execution is interrupted *before* this node. It awaits external API input.
+7. `audit_log_write`: Logs the final clinician decision and closes the cycle.
+
+---
+
+## 3. Directory Structure
+
+```text
 AgeniAi/
-├── .env                          # API key (GROQ_API_KEY)
-├── README.md                     # Project overview and setup instructions
-├── requirements.txt              # Python dependencies
+├── .env                          # Environment variables (OPENROUTER_API_KEY)
+├── README.md                     # High-level overview and setup guide
+├── PROJECT_CONTEXT.md            # Detailed architecture and implementation plans
+├── requirements.txt              # Python dependency list
 │
 ├── api/
-│   └── server.py                 # FastAPI server, compiles and executes LangGraph
+│   └── server.py                 # FastAPI server; compiles LangGraph & exposes endpoints
 │
 ├── frontend/
-│   ├── index.html                # Real-time dashboard UI
-│   ├── app.js                    # Synthetic stream generator and UI logic
-│   └── styles.css                # CSS styling
+│   ├── index.html                # Real-time dashboard layout
+│   ├── app.js                    # Synthetic stream generator, UI logic, and API calls
+│   └── styles.css                # Dashboard styling and layout rules
 │
 ├── graph/
-│   ├── workflow.py               # Defines the LangGraph StateGraph and edges
-│   └── nodes.py                  # Defines the logic for each graph node
+│   ├── workflow.py               # Defines the LangGraph StateGraph edges and conditional routing
+│   └── nodes.py                  # Contains the execution logic for every LangGraph node
 │
 ├── state/
-│   └── schema.py                 # Defines the PatientState TypedDict
+│   └── schema.py                 # Defines the PatientState and Alert structures
 │
 ├── data/
-│   └── protocols/                # Markdown files used for RAG
+│   └── protocols/                # Clinical markdown files used as the corpus for RAG
 │
-└── ingestion.py                  # Legacy data ingestion script
+├── db_setup.py                   # Script for initializing local DB/schema (if applicable)
+├── generate_synthetic_data.py    # Script to regenerate the synthetic vital stream dataset
+├── patients.csv                  # Mock local database of patient demographics and history
+└── vitals_stream.csv             # Generated mock data stream read by the frontend simulator
 ```
+*(Note: Legacy files like `ingestion.py` and `scratch_models.py` have been safely removed to reduce technical debt).*
 
 ---
 
-## 4. Purpose of Every Important File
+## 4. Key Design Decisions
 
-| File | Purpose |
-|------|---------|
-| `api/server.py` | FastAPI application. Instantiates the LangGraph with a MemorySaver checkpointer. Defines endpoints for `/vitals/stream` (invokes graph) and `/alerts/{patient_id}/decision` (resumes graph). Evaluates if the graph is paused before injecting new vitals. |
-| `graph/workflow.py` | Connects the nodes: `ingest_reading` -> `update_profile` -> `detect_trend` -> [conditional: `retrieve_evidence` or `audit_log`] -> `reason_generate` -> `human_in_loop` -> `audit_log_write`. |
-| `graph/nodes.py` | Contains the actual business logic for each node. `detect_trend_node` checks the rolling buffer for thresholds (e.g. SpO2 < 92 and RR > 22). `retrieve_evidence_node` does TF-IDF RAG. `reason_generate_node` calls OpenRouter LLM and enforces interventions. |
-| `frontend/app.js` | Generates continuous random walk vital signs for 5 patients every 1 second (representing 1 minute in real time). Every 30 seconds, it globally flushes the alerts board. Intercepts `escalation_available` from the API and beautifully formats the JSON output into a UI card with Action buttons. |
-| `frontend/index.html` | The HTML layout for the dashboard. |
+1. **LangGraph over Static Loops**: Transitioning to LangGraph provided native support for checkpointers. This made implementing the `interrupt_before=["human_in_loop"]` feature highly reliable, ensuring the system safely suspends state without complex external caching.
+2. **Vanilla Frontend**: Bypassing heavy frameworks (React/Next) or Python UI tools (Streamlit) allowed the frontend to execute an infinite, non-blocking `setInterval` loop to simulate 1-second vital stream ticks smoothly.
+3. **OpenRouter API**: The system utilizes OpenRouter (defaulting to the `openrouter/free` model) for LLM reasoning to ensure reliable structured JSON output via Pydantic parsers, avoiding rate-limit bottlenecks experienced with other free-tier providers.
+4. **Dynamic Data Generation**: Patient CRUD operations via the API dynamically execute `generate_synthetic_data.py` in the background, instantly rebuilding the `vitals_stream.csv` feed to reflect new or updated patients seamlessly.
+5. **Epoch Reset**: The frontend dashboard automatically clears old alerts globally every 30 seconds to simulate shifts and keep the dashboard clean.
 
 ---
 
-## 5. Important Technical Decisions
+## 5. Current Status
 
-1. **LangGraph Migration**: We moved from a static loop to a LangGraph `StateGraph`. This allows us to leverage built-in checkpointers for the `interrupt_before=["human_in_loop"]` functionality, making the Human-in-the-Loop feature robust and native to the workflow.
-2. **HTML/JS vs Streamlit**: We replaced Streamlit with a vanilla HTML/JS frontend to allow for completely asynchronous, 1-second interval streaming of synthetic vitals without fighting Streamlit's re-render loop.
-3. **LLM Provider Swap (OpenRouter)**: Due to strict rate limits and rapid model decommissioning on Groq's free tier, the system was migrated to the **OpenRouter API** (`openrouter/free`), solving structured JSON output generation drops and preventing random empty block failures during escalations.
-4. **Global 30-Second Refresh**: To keep the dashboard clean, `app.js` enforces a strict 30-second epoch where all active patient alert states and the alert board are reset, representing 30-minute block windows.
-5. **Paused Graph Protection**: `api/server.py` explicitly checks if `human_in_loop` is in the `current_state.next` queue. If it is, it drops incoming vital stream updates to prevent LangGraph from auto-resuming and bypassing the clinician's decision.
-
----
-
-## 6. Current Bugs or Issues
-
-None known at this time. The end-to-end pipeline (Data Generation -> Backend API -> LangGraph -> RAG -> OpenRouter LLM -> UI Rendering -> Clinician Decision -> Graph Resume) is fully operational. Patient CRUD management functions seamlessly update the data generator behind the scenes.
+**All core components are complete and operational.** The end-to-end pipeline successfully routes streaming data, triggers LangGraph state transitions, performs RAG retrieval, outputs structured LLM recommendations, and respects the clinician pause mechanism.

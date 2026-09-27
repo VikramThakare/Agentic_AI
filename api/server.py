@@ -1,8 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Dict, Any, List
-import os
 from dotenv import load_dotenv
 
 # Load environment variables (like GROQ_API_KEY) from .env file
@@ -159,14 +157,9 @@ def add_patient(patient: PatientInput):
     import subprocess
     try:
         with open("patients.csv", "a", newline="", encoding="utf-8") as f:
-            writer = csv.writer(f)
             import json
             hist_formatted = json.dumps([patient.history]) if patient.history else json.dumps([])
             meds_formatted = json.dumps([patient.medications]) if patient.medications else json.dumps([])
-            
-            # Read existing headers to figure out column count, or just read/write with pandas if easier,
-            # but we can just assume standard columns for now. We will use a DictWriter approach to be safe
-            pass
             
         import pandas as pd
         df = pd.read_csv("patients.csv")
