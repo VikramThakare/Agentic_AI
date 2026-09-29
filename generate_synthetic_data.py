@@ -25,8 +25,8 @@ def generate_vitals_stream(seed=42, minutes=300):
     for _, patient in patients_df.iterrows():
         pid = patient["patient_id"]
         
-        # Randomly assign a crash to patients so any patient can become critical
-        crash_type = np.random.choice(["resp", "cardio", "none"], p=[0.4, 0.4, 0.2])
+        # Randomly assign a crash to patients (more realistic probabilities)
+        crash_type = np.random.choice(["resp", "cardio", "none"], p=[0.15, 0.15, 0.70])
         if crash_type != "none":
             crash_target = crash_type
             crash_start_time = np.random.randint(2, 6) # Crash starts between minute 2 and 5
@@ -68,17 +68,17 @@ def generate_vitals_stream(seed=42, minutes=300):
             else:
                 # Introduce crash if past crash start time - increased severity!
                 if state["crash_target"] == "resp":
-                    # SpO2 drops severely, RR increases severely
-                    state["spo2"] -= np.random.normal(1.0, 0.2)
-                    state["rr"] += np.random.normal(0.8, 0.2)
-                    state["spo2"] = np.clip(state["spo2"], 50, 100) # Allow it to drop very low
-                    state["rr"] = np.clip(state["rr"], 12, 45)      # Allow it to rise very high
+                    # SpO2 drops, RR increases (realistic ranges)
+                    state["spo2"] -= np.random.normal(0.5, 0.1)
+                    state["rr"] += np.random.normal(0.4, 0.1)
+                    state["spo2"] = np.clip(state["spo2"], 75, 100)
+                    state["rr"] = np.clip(state["rr"], 12, 40)
                 elif state["crash_target"] == "cardio":
-                    # HR spikes severely, BP drops severely
-                    state["hr"] += np.random.normal(2.5, 0.5)
-                    state["sys_bp"] -= np.random.normal(2.0, 0.5)
-                    state["hr"] = np.clip(state["hr"], 60, 200)
-                    state["sys_bp"] = np.clip(state["sys_bp"], 40, 140)
+                    # HR spikes, BP drops (realistic ranges)
+                    state["hr"] += np.random.normal(1.5, 0.3)
+                    state["sys_bp"] -= np.random.normal(1.0, 0.3)
+                    state["hr"] = np.clip(state["hr"], 60, 180)
+                    state["sys_bp"] = np.clip(state["sys_bp"], 70, 140)
             
             records.append({
                 "patient_id": pid,
