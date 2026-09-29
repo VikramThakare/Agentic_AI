@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
-# Load environment variables (like GROQ_API_KEY) from .env file
+# Load environment variables from .env file
 load_dotenv()
 
 from langgraph.checkpoint.memory import MemorySaver

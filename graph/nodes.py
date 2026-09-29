@@ -114,7 +114,7 @@ def retrieve_evidence_node(state: PatientState):
 
 def reason_generate_node(state: PatientState):
     """
-    Calls ChatGroq (Llama 3.3 70B) to reason over the vitals + evidence.
+    Calls OpenRouter (e.g., openrouter/free) to reason over the vitals + evidence.
     Returns structured Pydantic output.
     """
     llm = ChatOpenAI(

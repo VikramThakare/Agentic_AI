@@ -548,7 +548,7 @@ function populatePatientDetail(patient) {
     const elMeds = document.getElementById('detail-meds');
     if (elMeds) elMeds.innerText = patient.medications;
     
-    // AI Escalation (RAG + Groq Output)
+    // AI Escalation (RAG + OpenRouter Output)
     const escalationPanel = document.getElementById('ai-escalation-panel');
     const ragOutput = document.getElementById('rag-output');
     const actionButtons = document.getElementById('human-loop-actions');
